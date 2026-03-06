@@ -1,0 +1,28 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY src/frontend/glat-web/package*.json ./
+
+RUN npm install
+
+COPY src/frontend/glat-web .
+
+RUN npm run build
+
+# Serve stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN npm install -g serve && apk add --no-cache curl
+
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+CMD ["serve", "-s", "dist", "-l", "3000"]

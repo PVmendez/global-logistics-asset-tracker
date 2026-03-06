@@ -1,0 +1,1066 @@
+openapi: 3.0.3
+info:
+  title: Global Logistics Asset Tracker (GLAT) API
+  description: |
+    REST API for managing and monitoring logistics assets in real-time.
+    This API provides CRUD operations for assets and telemetry data.
+  version: 1.0.0
+  contact:
+    name: Lexart Tech
+    email: architects@lexart.tech
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development Server
+  - url: https://api.glat.lexart.tech/api/v1
+    description: Production Server
+
+tags:
+  - name: Assets
+    description: Manage logistics assets (containers, vehicles, machinery)
+  - name: Telemetry
+    description: Log and retrieve sensor telemetry data
+  - name: Health
+    description: System and asset health endpoints
+
+paths:
+  /assets:
+    get:
+      summary: List all assets with pagination
+      operationId: getAssets
+      tags:
+        - Assets
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, MAINTENANCE, RETIRED]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [CONTAINER, VEHICLE, MACHINERY]
+      responses:
+        '200':
+          description: Successfully retrieved asset list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+    post:
+      summary: Create a new asset
+      operationId: createAsset
+      tags:
+        - Assets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssetRequest'
+      responses:
+        '201':
+          description: Asset created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Asset with given serial number already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+  /assets/{assetId}:
+    parameters:
+      - name: assetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The unique identifier of the asset
+
+    get:
+      summary: Retrieve a specific asset by ID
+      operationId: getAssetById
+      tags:
+        - Assets
+      responses:
+        '200':
+          description: Successfully retrieved asset details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+    put:
+      summary: Update an existing asset
+      operationId: updateAsset
+      tags:
+        - Assets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssetRequest'
+      responses:
+        '200':
+          description: Asset updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+    delete:
+      summary: Delete an asset
+      operationId: deleteAsset
+      tags:
+        - Assets
+      responses:
+        '204':
+          description: Asset deleted successfully
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+  /assets/{assetId}/telemetry:
+    parameters:
+      - name: assetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The unique identifier of the asset
+
+    get:
+      summary: Get telemetry logs for an asset
+      operationId: getAssetTelemetry
+      tags:
+        - Telemetry
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 500
+        - name: startTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start time for telemetry range (ISO 8601)
+        - name: endTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End time for telemetry range (ISO 8601)
+      responses:
+        '200':
+          description: Successfully retrieved telemetry logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+    post:
+      summary: Log telemetry data for an asset
+      operationId: logAssetTelemetry
+      tags:
+        - Telemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTelemetryRequest'
+      responses:
+        '201':
+          description: Telemetry logged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+  /assets/{assetId}/health:
+    parameters:
+      - name: assetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The unique identifier of the asset
+
+    get:
+      summary: Get asset health score (calculated from latest sensor data)
+      operationId: getAssetHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Successfully calculated asset health score
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthScoreResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset or sensor data not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+  /assets/{assetId}/health/maintenance:
+    parameters:
+      - name: assetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The unique identifier of the asset
+
+    get:
+      summary: Get asset maintenance alerts and schedule
+      operationId: getAssetMaintenance
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Successfully retrieved maintenance information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetMaintenanceResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+  /auth/login:
+    post:
+      summary: Authenticate user and retrieve JWT token
+      operationId: login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: System health check
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+        '500':
+          description: System is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+
+components:
+  schemas:
+    Asset:
+      type: object
+      required:
+        - id
+        - serialNumber
+        - type
+        - status
+        - location
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the asset
+        serialNumber:
+          type: string
+          description: Unique serial number of the asset
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [CONTAINER, VEHICLE, MACHINERY]
+          description: Type of logistics asset
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, MAINTENANCE, RETIRED]
+          description: Current operational status
+        description:
+          type: string
+          nullable: true
+          description: Optional description of the asset
+          maxLength: 500
+        location:
+          type: string
+          description: Current geographic location or warehouse
+          minLength: 1
+          maxLength: 200
+        lastMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last maintenance timestamp
+        nextMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Scheduled next maintenance
+        owner:
+          type: string
+          nullable: true
+          description: Owner or responsible party
+          maxLength: 100
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Custom metadata key-value pairs
+        createdAt:
+          type: string
+          format: date-time
+          description: Asset creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateAssetRequest:
+      type: object
+      required:
+        - serialNumber
+        - type
+        - location
+      properties:
+        serialNumber:
+          type: string
+          description: Unique serial number of the asset
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [CONTAINER, VEHICLE, MACHINERY]
+          description: Type of logistics asset
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, MAINTENANCE, RETIRED]
+          default: ACTIVE
+          description: Initial operational status
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        location:
+          type: string
+          minLength: 1
+          maxLength: 200
+        lastMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+        nextMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+          maxLength: 100
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    UpdateAssetRequest:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [CONTAINER, VEHICLE, MACHINERY]
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, MAINTENANCE, RETIRED]
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        location:
+          type: string
+          minLength: 1
+          maxLength: 200
+        lastMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+        nextMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+          maxLength: 100
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    AssetResponse:
+      $ref: '#/components/schemas/Asset'
+
+    AssetListResponse:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - pageSize
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        total:
+          type: integer
+          description: Total number of assets
+        page:
+          type: integer
+          description: Current page number
+        pageSize:
+          type: integer
+          description: Items per page
+        totalPages:
+          type: integer
+          description: Total number of pages
+
+    TelemetryLog:
+      type: object
+      required:
+        - id
+        - assetId
+        - timestamp
+        - sensorStatus
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the telemetry log
+        assetId:
+          type: string
+          format: uuid
+          description: Associated asset identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: When the telemetry data was collected
+        sensorStatus:
+          $ref: '#/components/schemas/SensorStatus'
+        healthScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Calculated health score (0-100)
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+          description: List of active alerts
+        createdAt:
+          type: string
+          format: date-time
+          description: Log creation timestamp
+
+    CreateTelemetryRequest:
+      type: object
+      required:
+        - timestamp
+        - sensorStatus
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: When the telemetry data was collected
+        sensorStatus:
+          $ref: '#/components/schemas/CreateSensorStatusRequest'
+
+    SensorStatus:
+      type: object
+      required:
+        - temperature
+        - humidity
+        - pressure
+        - vibration
+      properties:
+        temperature:
+          type: number
+          format: float
+          description: Temperature in Celsius
+        humidity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Humidity percentage
+        pressure:
+          type: number
+          format: float
+          description: Pressure in PSI
+        vibration:
+          type: number
+          format: float
+          minimum: 0
+          description: Vibration amplitude in mm/s
+        gps:
+          type: object
+          nullable: true
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+            altitude:
+              type: number
+              format: double
+          description: GPS coordinates if available
+        batteryLevel:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: Battery percentage (if applicable)
+
+    CreateSensorStatusRequest:
+      type: object
+      required:
+        - temperature
+        - humidity
+        - pressure
+        - vibration
+      properties:
+        temperature:
+          type: number
+          format: float
+        humidity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        pressure:
+          type: number
+          format: float
+        vibration:
+          type: number
+          format: float
+          minimum: 0
+        gps:
+          type: object
+          nullable: true
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+            altitude:
+              type: number
+              format: double
+        batteryLevel:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 100
+
+    TelemetryResponse:
+      $ref: '#/components/schemas/TelemetryLog'
+
+    TelemetryListResponse:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - pageSize
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelemetryLog'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
+
+    Alert:
+      type: object
+      required:
+        - id
+        - severity
+        - message
+      properties:
+        id:
+          type: string
+          format: uuid
+        severity:
+          type: string
+          enum: [INFO, WARNING, CRITICAL]
+        message:
+          type: string
+        code:
+          type: string
+          nullable: true
+
+    HealthScoreResponse:
+      type: object
+      required:
+        - assetId
+        - score
+        - status
+        - lastUpdate
+        - factors
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Overall health score
+        status:
+          type: string
+          enum: [HEALTHY, DEGRADED, CRITICAL]
+          description: Health status classification
+        lastUpdate:
+          type: string
+          format: date-time
+        factors:
+          type: object
+          description: Component-level health factors
+          properties:
+            temperature:
+              type: number
+              format: float
+            humidity:
+              type: number
+              format: float
+            pressure:
+              type: number
+              format: float
+            vibration:
+              type: number
+              format: float
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 6
+
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        tokenType:
+          type: string
+          default: Bearer
+        expiresIn:
+          type: integer
+          description: Token expiration in seconds
+        refreshToken:
+          type: string
+          nullable: true
+
+    SystemHealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - uptime
+      properties:
+        status:
+          type: string
+          enum: [HEALTHY, DEGRADED, UNHEALTHY]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          description: Uptime in seconds
+        database:
+          type: object
+          nullable: true
+          properties:
+            status:
+              type: string
+              enum: [CONNECTED, DISCONNECTED]
+            latency:
+              type: number
+              nullable: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - statusCode
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error message
+        statusCode:
+          type: integer
+          description: HTTP status code
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+
+    MaintenanceAlert:
+      type: object
+      required:
+        - alertType
+        - message
+        - severity
+      properties:
+        alertType:
+          type: string
+          enum: [SCHEDULED, OVERDUE, LOW_HEALTH]
+          description: Type of maintenance alert
+        message:
+          type: string
+          description: Alert message
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: When maintenance is due
+        daysRemaining:
+          type: integer
+          description: Days until maintenance is due
+        severity:
+          type: string
+          enum: [INFO, WARNING, CRITICAL]
+          description: Alert severity level
+
+    AssetMaintenanceResponse:
+      type: object
+      required:
+        - assetId
+        - alerts
+        - requiresMaintenance
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        lastMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the asset was last maintained
+        nextMaintenanceDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the next maintenance is scheduled
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceAlert'
+          description: List of maintenance alerts
+        requiresMaintenance:
+          type: boolean
+          description: Whether immediate maintenance is required
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token required for API access

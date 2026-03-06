@@ -1,0 +1,99 @@
+# .dockerignore for GLAT Backend API
+
+# Git files
+.git/
+.gitignore
+.gitkeep
+
+# Version control
+.svn/
+.hg/
+CVS/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.user
+*.sln.iml
+.editorconfig
+
+# Build outputs
+bin/
+obj/
+*.dll
+*.exe
+dist/
+build/
+
+# Dependencies
+node_modules/
+packages/
+.npm/
+
+# Testing
+*.Test/
+TestResults/
+coverage/
+.coverage
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Docker files (not needed in image)
+Dockerfile
+docker-compose.yml
+docker-compose*.yml
+docker-entrypoint.sh
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.azure-pipelines/
+.circleci/
+
+# Documentation (optional, keep if needed in container)
+docs/
+*.md
+README.md
+CONTRIBUTING.md
+
+# Root configs
+.env
+.env.example
+.editorconfig
+.babelrc
+.prettierrc
+.eslintrc*
+tsconfig.json
+webpack.config.js
+
+# Native build artifacts
+src/native/c/*.o
+src/native/c/*.a
+src/native/c/*.so
+src/native/c/build/
+
+# Frontend build artifacts (not needed in API image)
+node_modules/
+*.js.map
+*.css.map
+
+# Backup files
+*.backup
+*.bak
+~*
+
+# Misc
+.env.local
+.env.*.local
+IMPLEMENTATION_NOTES.md
